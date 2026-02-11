@@ -4,9 +4,13 @@ import sys
 from core.monitor import CPUMonitor, MemoryMonitor
 from core.logger import DataLogger
 
+# Color Constants
+RED = "\033[91m"
+GREEN = "\033[92m"
+RESET = "\033[0m"
+
 
 async def run_monitoring():
-    # Initialize our objects
     cpu_task = CPUMonitor("CPU", 2)
     mem_task = MemoryMonitor("RAM", 2)
     logger = DataLogger()
@@ -15,9 +19,7 @@ async def run_monitoring():
 
     try:
         while True:
-
             os.system('cls' if os.name == 'nt' else 'clear')
-
 
             results = await asyncio.gather(
                 cpu_task.collect(),
@@ -27,22 +29,30 @@ async def run_monitoring():
             print("=========================================")
             print("        PYPULSE LIVE DASHBOARD           ")
             print("=========================================")
-            print(f"STATUS: {results[0]}")
-            print(f"STATUS: {results[1]}")
+
+            for result in results:
+                try:
+                    percentage = float(result.split(": ")[1].replace("%", ""))
+                    color = RED if percentage > 80 else GREEN
+                except (IndexError, ValueError):
+                    color = RESET 
+
+                print(f"STATUS: {color}{result}{RESET}")
+
             print("=========================================")
             print("Action: Recording to logs/system_data.txt")
             print("Press Ctrl+C to Exit Safely")
 
             logger.log_data(results[0], results[1])
             await asyncio.sleep(2)
+
     except asyncio.CancelledError:
         pass
 
 
 if __name__ == "__main__":
-
     try:
         asyncio.run(run_monitoring())
     except KeyboardInterrupt:
-        print("\n[Shutting down...] Session logs saved. Goodbye!")
+        print("\n[Shutting down...] Goodbye!")
         sys.exit(0)
